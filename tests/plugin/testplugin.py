@@ -1,10 +1,12 @@
 import re
 from io import BytesIO
+from types import SimpleNamespace
 
 from streamlink import NoStreamsError
 from streamlink.options import Options
 from streamlink.plugin import pluginargument, pluginmatcher
 from streamlink.plugins import Plugin
+from streamlink.stream.dash import DASHStream
 from streamlink.stream.hls import HLSStream
 from streamlink.stream.http import HTTPStream
 from streamlink.stream.stream import Stream
@@ -56,6 +58,7 @@ class TestPlugin(Plugin):
         streams = {}
         streams["test"] = TestStream(self.session)
         streams["hls"] = HLSStream(self.session, "http://test.se/playlist.m3u8")
+        streams["dash"] = DASHStream(self.session, SimpleNamespace(url="http://test.se/manifest.mpd"))
         streams["http"] = HTTPStream(self.session, "http://test.se/stream")
 
         streams["240p"] = HTTPStream(self.session, "http://test.se/stream")
