@@ -77,6 +77,7 @@ class DASHStreamWorker(SegmentedStreamWorker):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.mpd = self.stream.mpd
+        self.period_changed = False
 
         self.manifest_reload_retries = self.session.options.get("dash-manifest-reload-attempts")
 
@@ -130,7 +131,8 @@ class DASHStreamWorker(SegmentedStreamWorker):
                 else:
                     back_off_factor = 1
 
-                init = False
+                init = self.period_changed
+                self.period_changed = False
 
     def reload(self):
         if self.closed:
@@ -153,8 +155,21 @@ class DASHStreamWorker(SegmentedStreamWorker):
         )
 
         new_rep = new_mpd.get_representation(self.reader.ident)
-        with freeze_timeline(new_mpd):
-            changed = len(list(itertools.islice(new_rep.segments(), 1))) > 0
+
+        def has_media_segments(rep):
+            if not rep:
+                return False
+            with freeze_timeline(new_mpd):
+                return len(list(itertools.islice(rep.segments(init=False), 1))) > 0
+
+        changed = has_media_segments(new_rep)
+        if not changed and new_mpd.type == "dynamic":
+            successor = new_mpd.get_period_successor(self.reader.ident)
+            if has_media_segments(successor):
+                new_rep = successor
+                self.reader.ident = new_rep.ident
+                self.period_changed = True
+                changed = True
 
         if changed:
             self.mpd = new_mpd
@@ -263,7 +278,7 @@ class DASHStream(Stream):
         cls,
         session: Streamlink,
         url_or_manifest: str,
-        period: int = 0,
+        period: Optional[int] = None,
         with_video_only: bool = False,
         with_audio_only: bool = False,
         **args,
@@ -273,7 +288,8 @@ class DASHStream(Stream):
 
         :param session: Streamlink session instance
         :param url_or_manifest: URL of the manifest file or an XML manifest string
-        :param period: Which MPD period to use (index number) for finding representations
+        :param period: Which MPD period to use (index number) for finding representations.
+                       Defaults to the last Period for dynamic MPDs, otherwise the first Period.
         :param with_video_only: Also return video-only streams, otherwise only return muxed streams
         :param with_audio_only: Also return audio-only streams, otherwise only return muxed streams
         :param args: Additional keyword arguments passed to :meth:`requests.Session.request`
@@ -287,6 +303,7 @@ class DASHStream(Stream):
             raise PluginError(f"Failed to parse MPD manifest: {err}") from err
 
         source = mpd_params.get("url", "MPD manifest")
+        period = (len(mpd.periods) - 1) if period is None and mpd.type == "dynamic" else (period or 0)
         video: List[Optional[Representation]] = [None] if with_audio_only else []
         audio: List[Optional[Representation]] = [None] if with_video_only else []
 
