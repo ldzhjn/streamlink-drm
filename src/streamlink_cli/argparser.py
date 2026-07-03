@@ -1081,22 +1081,22 @@ def build_parser():
         metavar="FILENAME",
         help="""
         Use a CENC decryption key to decrypt the media that ffmpeg receives as
-        an input from the DASH streaming that you play with streamlink.
+        an input from DASH or HLS fMP4 streaming that you play with streamlink.
         If only one decryption key is provided, it will be used for both video and audio.
         If --decryption_key_2 is also provided, it will be used for the first track.
         Example: -decryption_key "<hex key>"
-        """
+        """,
     )
-    
+
     transport_ffmpeg.add_argument(
         "-decryption_key_2",
         metavar="FILENAME",
         help="""
         Use a CENC decryption key to decrypt the media that ffmpeg receives as
-        an input from the DASH streaming that you play with streamlink.
+        an input from DASH or HLS fMP4 streaming that you play with streamlink.
         This key will be used for the second track only.
         Example: -decryption_key_2 "<hex key>"
-        """
+        """,
     )
 
     transport_ffmpeg.add_argument(
