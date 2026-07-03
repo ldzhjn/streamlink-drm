@@ -503,6 +503,27 @@ class TestDASHStreamWorker:
         assert old_representation.segments.call_args_list == [call(init=False)]
         assert new_representation.segments.call_args_list == [call(init=False)]
 
+    def test_dynamic_refresh_wait_ignores_period_duration(
+        self,
+        mock_wait: Mock,
+        worker: DASHStreamWorker,
+        representation: Mock,
+        segments: List[Mock],
+        mpd: Mock,
+    ):
+        mpd.type = "dynamic"
+        mpd.minimumUpdatePeriod.total_seconds.return_value = 3
+        representation.period.duration.total_seconds.return_value = 3600
+        representation.segments.return_value = segments[:1]
+        worker.reload = Mock(return_value=False)
+
+        segment_iter = worker.iter_segments()
+        assert next(segment_iter) is segments[0]
+        assert next(segment_iter) is segments[0]
+        assert next(segment_iter) is segments[0]
+
+        assert mock_wait.call_args_list == [call(3), call(3.9)]
+
     def test_static(
         self,
         worker: DASHStreamWorker,
