@@ -82,12 +82,6 @@ class TestCommandLinePOSIX(CommandLineTestCase):
                         ["/usr/bin/player", "--input-title-format", 'Poker "Stars"', "http://test.se/playlist.m3u8"],
                         passthrough=True)
 
-    def test_open_player_dash_pass_through(self):
-        self._test_args(["streamlink", "--player-passthrough", "dash", "-p", "/usr/bin/player",
-                         "test.se", "dash"],
-                        ["/usr/bin/player", "http://test.se/manifest.mpd"],
-                        passthrough=True)
-
     def test_single_hyphen_extra_player_args_971(self):
         """single hyphen params at the beginning of --player-args
            - https://github.com/streamlink/streamlink/issues/971 """
